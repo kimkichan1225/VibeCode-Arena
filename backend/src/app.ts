@@ -1,5 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
+import path from 'path';
 import { config } from './config';
 import fileRoutes from './routes/fileRoutes';
 
@@ -34,10 +35,27 @@ export function createApp(): Application {
   // 파일 시스템 API
   app.use('/api/files', fileRoutes);
 
-  // 404 핸들러
-  app.use((req: Request, res: Response) => {
-    res.status(404).json({ error: 'Not found' });
-  });
+  // Production: 프론트엔드 정적 파일 서빙
+  if (config.nodeEnv === 'production') {
+    const frontendPath = path.join(__dirname, '../../frontend/dist');
+
+    // 정적 파일 서빙
+    app.use(express.static(frontendPath));
+
+    // SPA 라우팅: API가 아닌 모든 요청은 index.html로
+    app.get('*', (req: Request, res: Response) => {
+      if (!req.path.startsWith('/api') && !req.path.startsWith('/socket.io')) {
+        res.sendFile(path.join(frontendPath, 'index.html'));
+      } else {
+        res.status(404).json({ error: 'Not found' });
+      }
+    });
+  } else {
+    // Development: 404 핸들러
+    app.use((req: Request, res: Response) => {
+      res.status(404).json({ error: 'Not found' });
+    });
+  }
 
   return app;
 }

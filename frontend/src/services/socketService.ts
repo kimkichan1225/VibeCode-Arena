@@ -1,7 +1,9 @@
 import { io, Socket } from 'socket.io-client';
 import { VibeRequest } from '../types';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+// Production에서는 같은 origin 사용, Development에서는 localhost:3001
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
+  (import.meta.env.PROD ? window.location.origin : 'http://localhost:3001');
 
 class SocketService {
   private socket: Socket | null = null;
