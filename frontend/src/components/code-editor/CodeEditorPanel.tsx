@@ -4,7 +4,7 @@ import { useCodeStore } from '../../stores/codeStore';
 import { useVibeStore } from '../../stores/vibeStore';
 import { useAgentStore } from '../../stores/agentStore';
 import { useProjectStore } from '../../stores/projectStore';
-import { Code, Copy, Check, GitCompare, Layers } from 'lucide-react';
+import { Code, Copy, Check, GitCompare, Layers, Pencil } from 'lucide-react';
 import { CodeRunner } from './CodeRunner';
 import { DiffViewer } from './DiffViewer';
 import { ProjectFilesViewer } from '../project-mode/ProjectFilesViewer';
@@ -12,9 +12,9 @@ import { Button } from '../common/Button';
 
 export const CodeEditorPanel: React.FC = () => {
   const { code, versions, currentVersion } = useCodeStore();
-  const { language } = useVibeStore();
-  const { phase } = useAgentStore();
-  const { mode, files: projectFiles, result: projectResult } = useProjectStore();
+  const { language, startModification, isModificationMode } = useVibeStore();
+  useAgentStore();
+  const { mode, files: projectFiles } = useProjectStore();
   const [copied, setCopied] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
 
@@ -23,6 +23,12 @@ export const CodeEditorPanel: React.FC = () => {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleModify = () => {
+    if (code) {
+      startModification(code);
     }
   };
 
@@ -74,6 +80,14 @@ export const CodeEditorPanel: React.FC = () => {
             <Button variant="ghost" size="sm" onClick={() => setShowDiff(true)}>
               <GitCompare className="w-3 h-3 mr-1" />
               변경 비교
+            </Button>
+          )}
+
+          {/* 수정 버튼 */}
+          {code && !isModificationMode && (
+            <Button variant="ghost" size="sm" onClick={handleModify}>
+              <Pencil className="w-3 h-3 mr-1" />
+              수정하기
             </Button>
           )}
 

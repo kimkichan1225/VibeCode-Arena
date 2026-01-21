@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Runner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 16px;
+      background: #1a1a2e;
+      color: white;
+      min-height: 100vh;
+    }
+    button {
+      cursor: pointer;
+      padding: 8px 16px;
+      margin: 4px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #333;
+      color: white;
+      transition: background 0.2s;
+    }
+    button:hover { background: #444; }
+    button:active { background: #555; }
+    input, textarea {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #222;
+      color: white;
+      width: 100%;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #a855f7;
+    }
+    h1, h2, h3 { margin-bottom: 16px; color: #fff; }
+    p { margin-bottom: 8px; }
+    label { display: block; margin-bottom: 4px; color: #aaa; }
+    .form-group { margin-bottom: 16px; }
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: #888;
+    }
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #a855f7;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box {
+      color: #f87171;
+      padding: 20px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      border: 1px solid #f87171;
+    }
+    .error-box h3 { color: #f87171; }
+    .waiting {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: #666;
+    }
+  </style>
+  <!-- React & ReactDOM -->
+  <script src="/libs/react.development.js"></script>
+  <script src="/libs/react-dom.development.js"></script>
+  <!-- Babel for JSX transformation -->
+  <script src="/libs/babel.min.js"></script>
+</head>
+<body>
+  <div id="root">
+    <div class="waiting">
+      <p>React Runner Ready</p>
+      <p style="font-size: 12px; margin-top: 8px;">Waiting for code...</p>
+    </div>
+  </div>
+
+  <script>
+    // Console output forwarding
+    function sendOutput(type, args) {
+      const content = args.map(arg => {
+        if (typeof arg === 'object') {
+          try { return JSON.stringify(arg, null, 2); }
+          catch (e) { return String(arg); }
+        }
+        return String(arg);
+      }).join(' ');
+      window.parent.postMessage({ type: 'console', outputType: type, content }, '*');
+    }
+
+    // Override console methods
+    const originalConsole = { ...console };
+    console.log = (...args) => { originalConsole.log(...args); sendOutput('log', args); };
+    console.error = (...args) => { originalConsole.error(...args); sendOutput('error', args); };
+    console.warn = (...args) => { originalConsole.warn(...args); sendOutput('warn', args); };
+    console.info = (...args) => { originalConsole.info(...args); sendOutput('info', args); };
+
+    // Global error handler
+    window.onerror = (msg, src, line, col, error) => {
+      sendOutput('error', [msg + (line ? ' (Line: ' + line + ')' : '')]);
+      return true;
+    };
+
+    window.onunhandledrejection = (e) => {
+      sendOutput('error', ['Unhandled Promise: ' + e.reason]);
+    };
+
+    // Check if libraries are loaded
+    function checkLibraries() {
+      const missing = [];
+      if (typeof React === 'undefined') missing.push('React');
+      if (typeof ReactDOM === 'undefined') missing.push('ReactDOM');
+      if (typeof Babel === 'undefined') missing.push('Babel');
+      return missing;
+    }
+
+    // Execute React code
+    function executeReactCode(code, componentName, isTypeScript) {
+      const missing = checkLibraries();
+      if (missing.length > 0) {
+        sendOutput('error', ['Libraries not loaded: ' + missing.join(', ')]);
+        document.getElementById('root').innerHTML =
+          '<div class="error-box"><h3>Library Error</h3><p>Failed to load: ' + missing.join(', ') + '</p></div>';
+        window.parent.postMessage({ type: 'done', success: false }, '*');
+        return;
+      }
+
+      try {
+        sendOutput('log', ['Executing ' + (isTypeScript ? 'TypeScript' : 'JavaScript') + ' React code...']);
+
+        // Build the code with hooks available
+        const fullCode = `
+          const { useState, useEffect, useCallback, useRef, useMemo, useReducer, useContext, createContext, memo, forwardRef, Fragment } = React;
+          ${code}
+
+          // Find and render the component
+          const __ComponentToRender__ = typeof __ExportedComponent__ !== 'undefined'
+            ? __ExportedComponent__
+            : (typeof ${componentName} !== 'undefined' ? ${componentName} : null);
+
+          if (__ComponentToRender__) {
+            ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(__ComponentToRender__));
+            sendOutput('result', ['React component rendered successfully']);
+          } else {
+            sendOutput('warn', ['No component found to render. Looking for: ${componentName}']);
+            document.getElementById('root').innerHTML = '<div class="error-box"><h3>No Component</h3><p>Could not find component: ${componentName}</p></div>';
+          }
+        `;
+
+        // Transform using Babel with TypeScript and React presets
+        const presets = isTypeScript ? ['typescript', 'react'] : ['react'];
+        const transformed = Babel.transform(fullCode, {
+          presets: presets,
+          filename: isTypeScript ? 'component.tsx' : 'component.jsx'
+        }).code;
+
+        // Execute the transformed code
+        eval(transformed);
+
+        window.parent.postMessage({ type: 'done', success: true }, '*');
+      } catch (error) {
+        sendOutput('error', [error.message]);
+        document.getElementById('root').innerHTML =
+          '<div class="error-box"><h3>Execution Error</h3><pre style="white-space: pre-wrap; font-size: 12px; margin-top: 8px;">' +
+          error.message + '</pre></div>';
+        window.parent.postMessage({ type: 'done', success: false }, '*');
+      }
+    }
+
+    // Listen for code from parent window
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'execute') {
+        const { code, componentName, isTypeScript } = event.data;
+        executeReactCode(code, componentName || 'App', isTypeScript || false);
+      }
+    });
+
+    // Notify parent that runner is ready
+    window.parent.postMessage({ type: 'ready' }, '*');
+  </script>
+</body>
+</html>

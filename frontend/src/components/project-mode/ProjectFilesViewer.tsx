@@ -44,7 +44,6 @@ const FILE_TYPE_LABELS: Record<ProjectFileType, string> = {
 export const ProjectFilesViewer: React.FC<ProjectFilesViewerProps> = ({
   files,
   onSaveFiles,
-  basePath,
 }) => {
   const [selectedFile, setSelectedFile] = useState<ProjectFile | null>(
     files[0] || null

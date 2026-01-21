@@ -154,7 +154,7 @@ export const DiscussionView: React.FC = () => {
 
       {/* 라운드별 토론 내용 */}
       <AnimatePresence>
-        {rounds.map((round, roundIndex) => (
+        {rounds.map((round) => (
           <motion.div
             key={`round-${round.round}`}
             initial={{ opacity: 0 }}

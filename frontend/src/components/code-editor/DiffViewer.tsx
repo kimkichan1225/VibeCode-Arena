@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DiffEditor } from '@monaco-editor/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { GitCompare, X } from 'lucide-react';
 
 interface DiffViewerProps {

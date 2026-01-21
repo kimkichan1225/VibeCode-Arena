@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AgentMessage, AgentType, ConsensusResult, Phase, AgentReaction, DiscussionState } from '../types';
+import { AgentMessage, ConsensusResult, Phase, AgentReaction, DiscussionState } from '../types';
 
 interface AgentState {
   sessionId: string | null;

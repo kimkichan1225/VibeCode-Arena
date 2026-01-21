@@ -21,6 +21,8 @@ export interface VibeRequest {
   prompt: string;
   tone: VibeTone;
   language: string;
+  existingCode?: string; // 수정 모드: 기존 코드
+  isModification?: boolean; // 수정 모드 여부
 }
 
 // 에이전트 메시지

@@ -4,9 +4,7 @@ import {
   Folder,
   File,
   ChevronRight,
-  ChevronDown,
   RefreshCw,
-  FolderOpen,
   FileCode,
   FileJson,
   FileText,
@@ -41,7 +39,6 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   // 디렉토리 내용 로드
   const loadDirectory = async (path?: string) => {
@@ -75,17 +72,6 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
     loadDirectory(initialPath);
   }, [initialPath]);
 
-  // 폴더 클릭
-  const handleFolderClick = (folder: FileInfo) => {
-    if (expandedFolders.has(folder.path)) {
-      const newExpanded = new Set(expandedFolders);
-      newExpanded.delete(folder.path);
-      setExpandedFolders(newExpanded);
-    } else {
-      loadDirectory(folder.path);
-    }
-  };
-
   // 폴더로 이동
   const navigateToFolder = (path: string) => {
     loadDirectory(path);
@@ -117,11 +103,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   // 파일 아이콘 가져오기
   const getFileIcon = (file: FileInfo) => {
     if (file.isDirectory) {
-      return expandedFolders.has(file.path) ? (
-        <FolderOpen className="w-4 h-4 text-yellow-400" />
-      ) : (
-        <Folder className="w-4 h-4 text-yellow-400" />
-      );
+      return <Folder className="w-4 h-4 text-yellow-400" />;
     }
 
     const ext = file.extension?.toLowerCase();

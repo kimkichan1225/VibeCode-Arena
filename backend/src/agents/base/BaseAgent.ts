@@ -19,6 +19,7 @@ export interface AgentInput {
   language: string;
   discussionHistory?: string;
   previousOutputs?: Map<AgentType, AgentOutput>;
+  isModification?: boolean; // 수정 모드 여부
 }
 
 export abstract class BaseAgent extends EventEmitter {

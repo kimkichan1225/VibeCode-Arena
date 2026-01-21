@@ -43,7 +43,7 @@ export function useSocket() {
     });
 
     // 단계 변경
-    socket.on('phase:change', ({ phase, message }: { phase: Phase; message: string }) => {
+    socket.on('phase:change', ({ phase }: { phase: Phase }) => {
       setPhase(phase);
 
       if (phase === 'complete' || phase === 'error') {
@@ -87,7 +87,7 @@ export function useSocket() {
     );
 
     // 코드 업데이트
-    socket.on('code:update', ({ code, version }: { code: string; version: number }) => {
+    socket.on('code:update', ({ code }: { code: string }) => {
       setCode(code);
       addVersion(code);
     });
@@ -165,7 +165,7 @@ export function useSocket() {
   }, []);
 
   const sendVibeRequest = useCallback(
-    (promptText: string, toneValue: string, languageValue: string) => {
+    (promptText: string, toneValue: string, languageValue: string, existingCode?: string, isModification?: boolean) => {
       setIsProcessing(true);
       setPhase('generation');
       setError(null);
@@ -180,6 +180,8 @@ export function useSocket() {
         prompt: promptText,
         tone: toneValue,
         language: languageValue,
+        existingCode: existingCode || undefined,
+        isModification: isModification || false,
       });
     },
     [setIsProcessing, setPhase, setError, resetAgentStore, resetCodeStore, resetDiscussion]

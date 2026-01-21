@@ -67,17 +67,25 @@ export class Orchestrator extends EventEmitter {
     let currentCode = '';
     const codeVersions: string[] = [];
 
+    // 수정 모드 여부 확인
+    const isModification = request.isModification && request.existingCode;
+
     try {
-      // ===== Phase 1: 코드 생성 =====
-      this.emitPhase('generation', 'Vibe Agent가 코드를 생성하고 있습니다...');
+      // ===== Phase 1: 코드 생성/수정 =====
+      if (isModification) {
+        this.emitPhase('generation', 'Vibe Agent가 기존 코드를 수정하고 있습니다...');
+      } else {
+        this.emitPhase('generation', 'Vibe Agent가 코드를 생성하고 있습니다...');
+      }
 
       const vibeAgent = this.agents.get('vibe') as VibeAgent;
       const vibeOutput = await vibeAgent.execute({
         sessionId: request.sessionId,
         originalRequest: request.prompt,
-        currentCode: '',
+        currentCode: isModification ? request.existingCode! : '',
         tone: request.tone,
         language: request.language,
+        isModification: !!isModification,
       });
 
       // 생성된 코드 추출

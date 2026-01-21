@@ -10,13 +10,15 @@ import {
   Palette,
   ChevronDown,
   FolderOpen,
+  Pencil,
+  X,
 } from 'lucide-react';
 import { useVibeStore } from '../../stores/vibeStore';
 import { useProjectStore } from '../../stores/projectStore';
 import { useSocket } from '../../hooks/useSocket';
 import { TONE_OPTIONS, LANGUAGE_OPTIONS } from '../../constants/agents';
 import { Button } from '../common/Button';
-import { GenerationMode, VibeTone } from '../../types';
+import { VibeTone } from '../../types';
 import { FileExplorer } from '../file-explorer/FileExplorer';
 
 const FRAMEWORK_OPTIONS = [
@@ -27,7 +29,7 @@ const FRAMEWORK_OPTIONS = [
 ];
 
 export const VibeInputPanel: React.FC = () => {
-  const { prompt, tone, language, isProcessing, setPrompt, setTone, setLanguage } =
+  const { prompt, tone, language, isProcessing, setPrompt, setTone, setLanguage, isModificationMode, existingCode, cancelModification } =
     useVibeStore();
   const { mode, setMode, isGenerating } = useProjectStore();
   const { sendVibeRequest, sendProjectRequest } = useSocket();
@@ -56,6 +58,9 @@ export const VibeInputPanel: React.FC = () => {
         includeStyles,
         selectedFiles: [],
       });
+    } else if (isModificationMode) {
+      // 수정 모드: 기존 코드와 함께 요청 전송
+      sendVibeRequest(prompt, tone, language, existingCode, true);
     } else {
       sendVibeRequest(prompt, tone, language);
     }
@@ -73,38 +78,72 @@ export const VibeInputPanel: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-bg-secondary">
       {/* 헤더 */}
-      <div className="flex items-center gap-2 p-4 border-b border-gray-700">
-        <Sparkles className="w-5 h-5 text-purple-400" />
-        <h2 className="text-lg font-semibold text-white">바이브 입력</h2>
+      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center gap-2">
+          {isModificationMode ? (
+            <>
+              <Pencil className="w-5 h-5 text-yellow-400" />
+              <h2 className="text-lg font-semibold text-white">코드 수정</h2>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5 text-purple-400" />
+              <h2 className="text-lg font-semibold text-white">바이브 입력</h2>
+            </>
+          )}
+        </div>
+        {isModificationMode && (
+          <button
+            onClick={cancelModification}
+            className="p-1 text-gray-400 hover:text-white transition-colors"
+            title="수정 취소"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
-      {/* 모드 전환 탭 */}
-      <div className="flex items-center gap-2 p-3 border-b border-gray-700">
-        <button
-          onClick={() => setMode('single')}
-          disabled={isLoading}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm ${
-            mode === 'single'
-              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-          }`}
-        >
-          <FileCode className="w-4 h-4" />
-          단일 파일
-        </button>
-        <button
-          onClick={() => setMode('project')}
-          disabled={isLoading}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm ${
-            mode === 'project'
-              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          프로젝트
-        </button>
-      </div>
+      {/* 모드 전환 탭 - 수정 모드일 때는 숨김 */}
+      {!isModificationMode && (
+        <div className="flex items-center gap-2 p-3 border-b border-gray-700">
+          <button
+            onClick={() => setMode('single')}
+            disabled={isLoading}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm ${
+              mode === 'single'
+                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            }`}
+          >
+            <FileCode className="w-4 h-4" />
+            단일 파일
+          </button>
+          <button
+            onClick={() => setMode('project')}
+            disabled={isLoading}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm ${
+              mode === 'project'
+                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            프로젝트
+          </button>
+        </div>
+      )}
+
+      {/* 수정 모드 안내 */}
+      {isModificationMode && (
+        <div className="p-3 border-b border-gray-700 bg-yellow-500/10">
+          <p className="text-sm text-yellow-400">
+            기존 코드를 수정합니다. 어떤 변경을 원하시나요?
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            예: "버튼 색상을 파란색으로 변경해줘", "에러 처리 추가해줘"
+          </p>
+        </div>
+      )}
 
       {/* 스크롤 가능한 콘텐츠 영역 */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -222,18 +261,28 @@ export const VibeInputPanel: React.FC = () => {
         {/* 프롬프트 입력 */}
         <div>
           <label className="block text-sm text-gray-400 mb-2">
-            {mode === 'project' ? '어떤 프로젝트를 만들까요?' : '무엇을 만들까요?'}
+            {isModificationMode
+              ? '어떤 수정을 원하시나요?'
+              : mode === 'project'
+              ? '어떤 프로젝트를 만들까요?'
+              : '무엇을 만들까요?'}
           </label>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              mode === 'project'
+              isModificationMode
+                ? '예: 버튼에 호버 효과 추가해줘'
+                : mode === 'project'
                 ? '예: Todo 앱을 만들어줘. 추가/삭제/완료 기능 포함'
                 : '예: 로그인 폼 만들어줘'
             }
-            className="w-full h-24 px-3 py-2 bg-bg-tertiary border border-gray-700 rounded-lg text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+            className={`w-full h-24 px-3 py-2 bg-bg-tertiary border rounded-lg text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:border-transparent text-sm ${
+              isModificationMode
+                ? 'border-yellow-500/50 focus:ring-yellow-500'
+                : 'border-gray-700 focus:ring-purple-500'
+            }`}
             disabled={isLoading}
           />
           <p className="text-xs text-gray-500 mt-1">Ctrl+Enter로 실행</p>
@@ -293,9 +342,14 @@ export const VibeInputPanel: React.FC = () => {
           disabled={!canSubmit || isLoading}
           isLoading={isLoading}
           size="lg"
-          className="w-full"
+          className={`w-full ${isModificationMode ? 'bg-yellow-600 hover:bg-yellow-700' : ''}`}
         >
-          {mode === 'project' ? (
+          {isModificationMode ? (
+            <>
+              <Pencil className="w-5 h-5 mr-2" />
+              코드 수정
+            </>
+          ) : mode === 'project' ? (
             <>
               <FolderPlus className="w-5 h-5 mr-2" />
               프로젝트 생성
@@ -312,7 +366,11 @@ export const VibeInputPanel: React.FC = () => {
         <p className="text-xs text-gray-500 text-center mt-3">
           2개의 AI 에이전트가 협력하여
           <br />
-          {mode === 'project' ? '프로젝트를 생성합니다' : '최적의 코드를 생성합니다'}
+          {isModificationMode
+            ? '코드를 수정합니다'
+            : mode === 'project'
+            ? '프로젝트를 생성합니다'
+            : '최적의 코드를 생성합니다'}
         </p>
       </div>
     </div>

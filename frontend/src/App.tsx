@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { MainLayout } from './components/layout/MainLayout';
 import { HistoryPanel } from './components/history/HistoryPanel';
 import { useSocket } from './hooks/useSocket';

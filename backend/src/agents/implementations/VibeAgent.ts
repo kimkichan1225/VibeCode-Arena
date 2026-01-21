@@ -22,6 +22,25 @@ export class VibeAgent extends BaseAgent {
     // 톤에 맞는 시스템 프롬프트 설정
     this.config.systemPrompt = getVibeSystemPrompt(input.tone);
 
+    // 수정 모드인 경우
+    if (input.isModification && input.currentCode) {
+      return `User Modification Request: ${input.originalRequest}
+
+Target Language: ${input.language}
+Requested Tone: ${input.tone}
+
+EXISTING CODE TO MODIFY:
+\`\`\`${input.language}
+${input.currentCode}
+\`\`\`
+
+Please modify the existing code according to the user's request.
+Keep the overall structure and style consistent with the existing code.
+Apply the changes requested by the user while maintaining code quality.
+Remember to output ONLY valid JSON format with the complete modified code.`;
+    }
+
+    // 새로운 코드 생성 모드
     return `User Request: ${input.originalRequest}
 
 Target Language: ${input.language}
